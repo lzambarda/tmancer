@@ -1,0 +1,4 @@
+github.com/ahmetb/go-cursor v0.0.0-20131010032410-8136607ea412 h1:mjEdk5IWaOUyDfmIScVahVtW56YQ1gBv8RMyHl69Z30=
+github.com/ahmetb/go-cursor v0.0.0-20131010032410-8136607ea412/go.mod h1:6/fH+MoHXlGOc3iy8TSNB4eM1oaBDMs1oxPVN40M3h0=
+github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
+github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
