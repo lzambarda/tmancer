@@ -122,7 +122,13 @@ func (t *Tunnel) kill() {
 
 //nolint:gosec // I'm happy for now.
 func isPortBusy(ctx context.Context, port int) bool {
-	cmd := exec.CommandContext(ctx, "lsof", "-i", fmt.Sprintf(":%d", port))
+	// Calling lsof alone is not enough to know if a TCP file means that a
+	// connection is established or not. This is because it returns any state as
+	// long as there is avalid one for the provided port:
+	//   https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Protocol_operation
+	// To do that we must grep the results.
+	cmdStr := fmt.Sprintf(`lsof -n -i :%d | grep "(ESTABLISHED)"`, port)
+	cmd := exec.CommandContext(ctx, "sh", "-c", cmdStr)
 	cmd.Run() // nolint:errcheck // lsof returns error if nothing is found.
 	// If the process state is nil it means that the command could not be
 	// completed.
