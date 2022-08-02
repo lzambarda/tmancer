@@ -44,7 +44,8 @@ A configuration file is just a json file with any number of tunnel configs, such
     "k8s": {
       "namespace": "foo-staging-1",
       "service": "svc/foo-lb",
-      "port": 7100
+      "port": 7100,
+      "context": "staging-cluster", // optional
     }
   },
   {
