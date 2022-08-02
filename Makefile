@@ -7,7 +7,7 @@ BUILDFLAGS:="-s -w -X github.com/lzambarda/$(NAME)/internal.Version=$(build_tag)
 
 .PHONY: dependencies
 dependencies: ## Install test and build dependencies
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.0
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 .PHONY: lint
 lint: ## Hmmm, lint?

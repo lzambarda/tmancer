@@ -19,6 +19,7 @@ var signalRegex = regexp.MustCompile(`signal: ([a-z ]+)$`)
 
 // K8sInfo contains all information required to use a kubectl port forward command.
 type K8sInfo struct {
+	Context   string `json:"context"`
 	Namespace string `json:"namespace"`
 	Service   string `json:"service"`
 	Port      int    `json:"port"`
@@ -48,7 +49,12 @@ func (c *TunnelConfig) GetType() string {
 //nolint:gosec // I'm happy for now.
 func (c *TunnelConfig) getCommand(ctx context.Context) (*exec.Cmd, error) {
 	if c.K8s != nil {
-		return exec.CommandContext(ctx, "kubectl", "port-forward", "-n", c.K8s.Namespace, c.K8s.Service, fmt.Sprintf("%d:%d", c.LocalPort, c.K8s.Port)), nil
+		args := []string{"port-forward", "-n", c.K8s.Namespace}
+		if c.K8s.Context != "" {
+			args = append(args, "--context", c.K8s.Context)
+		}
+		args = append(args, c.K8s.Service, fmt.Sprintf("%d:%d", c.LocalPort, c.K8s.Port))
+		return exec.CommandContext(ctx, "kubectl", args...), nil
 	}
 	if c.Custom != "" {
 		parts := strings.Split(c.Custom, " ")
