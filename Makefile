@@ -2,12 +2,12 @@ help: ## Show help messages.
 	@grep -E '^[0-9a-zA-Z_-]+:(.*?## .*)?$$' $(MAKEFILE_LIST) | sed 's/^Makefile://' | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 NAME:=tmancer
-build_tag:=$(shell git describe --tags 2> /dev/null)
-BUILDFLAGS:="-s -w -X github.com/lzambarda/$(NAME)/internal.Version=$(build_tag)"
+BUILDFLAGS:="-s -w"
 
 .PHONY: dependencies
 dependencies: ## Install test and build dependencies
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@go install golang.org/x/tools/cmd/stringer @latest
 
 .PHONY: lint
 lint: ## Hmmm, lint?
