@@ -1,4 +1,26 @@
 linters-settings:
+  funlen:
+    lines: 100
+    statements: 50
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+  gocyclo:
+    min-complexity: 15
+  cyclop:
+    skip-tests: true
+    max-complexity: 15
+  godot:
+    capital: true
+  goimports:
+    local-prefixes: github.com/golangci/golangci-lint
   govet:
     settings:
       printf:
@@ -7,35 +29,22 @@ linters-settings:
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
-    enable:
+    disable:
       - fieldalignment
-  gocyclo:
-    min-complexity: 15
-  maligned:
-    suggest-new: true
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  misspell:
-    locale: UK
   lll:
     line-length: 140
-  goimports:
-    local-prefixes: github.com/golangci/golangci-lint
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-  funlen:
-    lines: 100
-    statements: 50
-  godot:
-    capital: true
+  maligned:
+    suggest-new: true
+  misspell:
+    locale: UK
   unparam:
     check-exported: true
+  linters-settings:
+  tagliatelle:
+    case:
+      use-field-name: true
+      rules:
+        json: snake
 
 issues:
   # Excluding configuration per-path, per-linter, per-text and per-source
@@ -43,74 +52,97 @@ issues:
     - path: _test\.go
       linters:
         - gosec # security check is not important in tests
-        - dupl # we usualy duplicate code in tests
+        - dupl # we usually duplicate code in tests
         - bodyclose
         - unparam
         - errcheck
         - govet
+        - revive
+        - gocritic
+        - funlen
+        - maintidx
+    - path: testing
+      linters:
+        - errcheck
   fix: true
   exclude-use-default: false
 
 run:
-  build-tags:
-    - integration
-    - e2e
   skip-dirs:
     - model
     - tmp
     - bin
     - scripts
-    - test
+
   tests: true
+  build-tags:
+    - integration
 
 linters:
   disable-all: true
   fast: true
   enable:
+    - asasalint
+    - asciicheck
+    - bidichk
     - bodyclose
-    - deadcode
-    - depguard
+    - containedctx
+    - contextcheck
+    - cyclop
+    - decorder
     - dogsled
     - dupl
     - durationcheck
     - errcheck
+    - errchkjson
+    - errname
     - errorlint
+    - execinquery
     - exportloopref
     - forcetypeassert
+    - funlen
+    - gocheckcompilerdirectives
     - gocognit
     - goconst
     - gocritic
     - gocyclo
     - godot
     - godox
-    - revive
+    - gofmt
+    - gofumpt
+    - goheader
+    - goimports
+    - gomoddirectives
+    - gomodguard
     - goprintffuncname
     - gosec
     - gosimple
     - govet
+    - grouper
+    - importas
     - ineffassign
+    - maintidx
+    - makezero
     - misspell
     - nakedret
     - nestif
     - nilerr
+    - nilnil
+    - noctx
     - prealloc
+    - predeclared
+    - promlinter
+    - revive
     - rowserrcheck
     - sqlclosecheck
     - staticcheck
-    - structcheck
     - stylecheck
+    - tenv
     - tparallel
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - wastedassign
     - whitespace
-
-# golangci.com configuration
-# https://github.com/golangci/golangci/wiki/Configuration
-service:
-  golangci-lint-version: 1.44.x
-  prepare:
-    - echo "here I can run custom commands, but no preparation needed for this repo"
+    - wrapcheck
