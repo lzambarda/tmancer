@@ -3,16 +3,17 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 var signalRegex = regexp.MustCompile(`signal: ([a-z ]+)$`)
@@ -32,18 +33,6 @@ type TunnelConfig struct {
 	K8s       *K8sInfo `json:"k8s"`
 	Custom    string   `json:"custom"`
 	LocalPort int      `json:"local_port"`
-}
-
-// GetType returns the config type being used. See the description of
-// TunnelConfig to know which ones are available.
-func (c *TunnelConfig) GetType() string {
-	if c.K8s != nil {
-		return "k8s"
-	}
-	if c.Custom != "" {
-		return "custom"
-	}
-	return "N/A"
 }
 
 //nolint:gosec // I'm happy for now.
@@ -120,29 +109,43 @@ func (t *Tunnel) kill() {
 	if t.cmd == nil || t.cmd.Process == nil {
 		return
 	}
-	err := t.cmd.Process.Kill()
-	if err != nil && !errors.Is(err, os.ErrProcessDone) {
+	err := syscall.Kill(-t.cmd.Process.Pid, syscall.SIGKILL)
+	if err != nil && !errors.Is(err, os.ErrProcessDone) && err.Error() != "no such process" {
 		fmt.Printf("Error while killing %s: %v\n", t.config.Name, err)
 	}
 }
 
-//nolint:gosec // I'm happy for now.
-func isPortBusy(ctx context.Context, port int) bool {
-	// Calling lsof alone is not enough to know if a TCP file means that a
-	// connection is established or not. This is because it returns any state as
-	// long as there is avalid one for the provided port:
-	//   https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Protocol_operation
-	// To do that we must grep the results.
-	cmdStr := fmt.Sprintf(`lsof -n -i :%d | grep "(ESTABLISHED)"`, port)
-	cmd := exec.CommandContext(ctx, "sh", "-c", cmdStr)
-	cmd.Run() // nolint:errcheck // lsof returns error if nothing is found.
-	// If the process state is nil it means that the command could not be
-	// completed.
-	// In this case we simply treat this as busy (for now, not the best).
-	if cmd.ProcessState == nil {
-		return true
+// GetName returns the name of the tunnel as specified in its config.
+func (t *Tunnel) GetName() string {
+	return t.config.Name
+}
+
+// GetType returns the config type being used by this tunnel. See the
+// description of TunnelConfig to know which ones are available.
+func (t *Tunnel) GetType() string {
+	if t.config.K8s != nil {
+		return "k8s"
 	}
-	return cmd.ProcessState.Success()
+	if t.config.Custom != "" {
+		return "custom"
+	}
+	return "N/A"
+}
+
+// GetLocalPort returns the local port used by the tunnel as specified in its
+// config.
+func (t *Tunnel) GetLocalPort() int {
+	return t.config.LocalPort
+}
+
+//nolint:gosec // I'm happy for now.
+func isPortBusy(port int) bool {
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return true // Assume port is busy
+	}
+	l.Close() // nolint:errcheck // should be fine.
+	return false
 }
 
 // Start the tunnel with a given context, lock and wait group. Better to run
@@ -179,19 +182,20 @@ func (t *Tunnel) Start(ctx context.Context, m sync.Locker) {
 		// All statuses leading to (re)opening the tunnel.
 		case Close, Reopening, Cooper, PortBusy:
 			// First check if the port is busy
-			if isPortBusy(ctx, t.config.LocalPort) {
+			if isPortBusy(t.config.LocalPort) {
 				t.status = PortBusy
 				break
 			}
 			// Start the command in a goroutine.
 			t.cmd, err = t.config.getCommand(ctx)
 			if err != nil {
-				ch <- err
+				ch <- fmt.Errorf("get command: %w", err)
 				break
 			}
+			t.cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 			go func() {
 				b, err := t.cmd.CombinedOutput()
-				ch <- errors.Wrap(err, string(b))
+				ch <- fmt.Errorf("%s: %w", string(b), err)
 			}()
 			if t.status != Reopening {
 				t.status = Opening
